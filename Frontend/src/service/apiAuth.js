@@ -8,6 +8,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // ✅ Enable cookies
 });
 
 // Add token to requests
@@ -47,6 +48,7 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/update-profile', data),
   changePassword: (data) => api.put('/auth/change-password', data),
+  logout: () => api.post('/auth/logout'),
 };
 
 // Buyer API

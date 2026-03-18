@@ -12,6 +12,7 @@ import buyerRoutes from './routes/buyerRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import connectDb from './config/db.js';
+import cookieParser from 'cookie-parser';
 
 // Load env
 dotenv.config();
@@ -24,7 +25,11 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cookieParser());
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));

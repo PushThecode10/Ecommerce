@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../Redux/authSlice.js';
 import { FiHome, FiShoppingBag, FiShoppingCart, FiUser, FiLogOut, FiMenu, FiX } from 'react-icons/fi';
 import { useState } from 'react';
+import { authAPI } from '../service/apiAuth.js';
 
 const BuyerLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -11,10 +12,18 @@ const BuyerLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/');
-  };
+  const handleLogout = async () => {
+  try {
+    await authAPI.logout(); // 🔥 Call backend to clear cookie/session
+  } catch (error) {
+    console.error("Logout error:", error);
+  }
+
+  // Clear frontend state
+  localStorage.removeItem("token");
+  dispatch(logout());
+  navigate("/");
+};
 
   const navigation = [
     { name: 'Dashboard', path: '/buyer', icon: FiHome },
