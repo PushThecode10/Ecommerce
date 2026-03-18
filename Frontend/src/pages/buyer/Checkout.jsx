@@ -4,284 +4,581 @@ import { useSelector, useDispatch } from 'react-redux';
 import { selectCartItems, selectCartTotal, clearCart } from '../../Redux/createSlice';
 import { buyerAPI } from '../../service/apiAuth.js';
 import toast from 'react-hot-toast';
-import { FiCreditCard, FiDollarSign } from 'react-icons/fi';
+import {
+  FiCreditCard, FiDollarSign, FiMapPin, FiUser,
+  FiPhone, FiArrowRight, FiShoppingBag, FiShield,
+  FiTruck, FiCheck, FiChevronRight,
+} from 'react-icons/fi';
+import { motion, AnimatePresence } from 'motion/react';
 
+/* ─── Keyframes + non-Tailwind bits ─────────────────────────────────────── */
+const Keyframes = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Clash+Display:wght@500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+    html, body, #root {
+      background: #060612 !important;
+      color: #fff !important;
+      font-family: 'DM Sans', sans-serif !important;
+    }
+
+    @keyframes orb-a { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(50px,-40px) scale(1.1)} 75%{transform:translate(-30px,25px) scale(.93)} }
+    @keyframes orb-b { 0%,100%{transform:translate(0,0) scale(1)} 45%{transform:translate(-40px,35px) scale(1.08)} }
+    @keyframes grid-p { 0%,100%{opacity:.025} 50%{opacity:.05} }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes float-up { 0%,100%{transform:translateY(0);opacity:.2} 50%{transform:translateY(-20px);opacity:.55} }
+    @keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+    @keyframes check-draw { from{stroke-dashoffset:30} to{stroke-dashoffset:0} }
+
+    .font-clash { font-family: 'Clash Display', sans-serif !important; }
+    .font-dm    { font-family: 'DM Sans', sans-serif !important; }
+
+    .orb-a-anim { animation: orb-a 22s ease-in-out infinite; }
+    .orb-b-anim { animation: orb-b 26s ease-in-out infinite 3s; }
+    .grid-anim  { animation: grid-p 8s ease-in-out infinite; }
+    .float-p    { animation: float-up var(--dur,5s) ease-in-out var(--delay,0s) infinite; }
+    .spinner    { animation: spin 1s linear infinite; }
+
+    /* gradients that Tailwind can't do inline */
+    .grad-purple  { background: linear-gradient(135deg,#7c3aed,#6d28d9) !important; }
+    .grad-text    { background: linear-gradient(135deg,#a78bfa,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .grad-pink    { background: linear-gradient(135deg,#ec4899,#be185d) !important; }
+    .section-card { background: rgba(255,255,255,.045) !important; border: 1px solid rgba(255,255,255,.09) !important; }
+    .input-dark {
+      background: rgba(255,255,255,.07) !important;
+      border: 1px solid rgba(255,255,255,.12) !important;
+      color: #fff !important;
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color .25s, box-shadow .25s;
+    }
+    .input-dark::placeholder { color: rgba(255,255,255,.25); }
+    .input-dark:focus {
+      outline: none;
+      border-color: rgba(124,58,237,.6) !important;
+      box-shadow: 0 0 0 3px rgba(124,58,237,.15);
+    }
+    /* Payment radio option */
+    .pay-option {
+      background: rgba(255,255,255,.045) !important;
+      border: 1px solid rgba(255,255,255,.1) !important;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: border-color .25s, box-shadow .25s, background .25s;
+    }
+    .pay-option:hover {
+      border-color: rgba(124,58,237,.4) !important;
+      background: rgba(124,58,237,.07) !important;
+    }
+    .pay-option.selected {
+      border-color: rgba(124,58,237,.55) !important;
+      background: rgba(124,58,237,.12) !important;
+      box-shadow: 0 0 0 3px rgba(124,58,237,.12);
+    }
+    .pay-option input[type="radio"] { display: none; }
+    /* Custom radio dot */
+    .radio-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.25);
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color .2s, background .2s;
+    }
+    .pay-option.selected .radio-dot {
+      border-color: #7c3aed;
+      background: #7c3aed;
+    }
+    .radio-inner {
+      width: 7px; height: 7px; border-radius: 50%; background: #fff;
+      transform: scale(0); transition: transform .2s;
+    }
+    .pay-option.selected .radio-inner { transform: scale(1); }
+
+    /* Submit btn */
+    .submit-btn {
+      background: linear-gradient(135deg,#7c3aed,#6d28d9) !important;
+      box-shadow: 0 6px 28px rgba(124,58,237,.42);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .submit-btn:hover { transform: scale(1.02); box-shadow: 0 8px 40px rgba(124,58,237,.6) !important; }
+    .submit-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* Step indicator */
+    .step-line { background: rgba(255,255,255,.08); }
+    .step-line.done { background: linear-gradient(90deg,#7c3aed,#ec4899); }
+
+    /* Order item row */
+    .order-item-row { border-bottom: 1px solid rgba(255,255,255,.06); }
+    .order-item-row:last-child { border-bottom: none; }
+
+    /* Summary card */
+    .summary-card {
+      background: rgba(255,255,255,.042) !important;
+      border: 1px solid rgba(255,255,255,.09) !important;
+    }
+
+    ::selection { background: rgba(124,58,237,.4); color: #fff; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #060612; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(#7c3aed,#ec4899); border-radius: 4px; }
+  `}</style>
+);
+
+/* ─── Section wrapper ────────────────────────────────────────────────────── */
+const Section = ({ title, icon, children, delay = 0 }) => (
+  <motion.div
+    className="section-card rounded-2xl p-6 md:p-7"
+    initial={{ opacity: 0, y: 28 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: .6, delay, ease: [.22, 1, .36, 1] }}
+  >
+    <div className="flex items-center gap-3 mb-6">
+      <div className="grad-purple w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0"
+        style={{ boxShadow: '0 4px 16px rgba(124,58,237,.4)' }}>
+        {icon}
+      </div>
+      <h2 className="font-clash text-lg font-bold text-white">{title}</h2>
+    </div>
+    {children}
+  </motion.div>
+);
+
+/* ─── Input field ────────────────────────────────────────────────────────── */
+const Field = ({ label, name, type = 'text', value, onChange, required, placeholder, icon }) => (
+  <div>
+    <label className="block font-dm text-[12px] font-semibold text-white/40 uppercase tracking-[2.5px] mb-2">
+      {label}{required && <span className="text-[#ec4899] ml-1">*</span>}
+    </label>
+    <div className="relative">
+      {icon && (
+        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none">
+          {icon}
+        </span>
+      )}
+      <input
+        type={type} name={name} value={value} onChange={onChange}
+        required={required} placeholder={placeholder}
+        className={`input-dark w-full rounded-xl py-3 pr-4 text-sm font-dm ${icon ? 'pl-10' : 'pl-4'}`}
+      />
+    </div>
+  </div>
+);
+
+/* ─── Payment option ─────────────────────────────────────────────────────── */
+const PayOption = ({ value, selected, onChange, icon, label, sub }) => (
+  <label className={`pay-option flex items-center gap-4 p-4 ${selected ? 'selected' : ''}`}
+    onClick={() => onChange(value)}
+  >
+    <input type="radio" name="paymentMethod" value={value} checked={selected} readOnly />
+    <div className="radio-dot"><div className="radio-inner" /></div>
+    <div className="flex items-center gap-3 flex-1">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0
+        ${selected ? 'grad-purple' : 'bg-white/[.07]'}`}
+        style={selected ? { boxShadow: '0 4px 14px rgba(124,58,237,.35)' } : {}}
+      >
+        {icon}
+      </div>
+      <div>
+        <p className="font-clash text-[14px] font-semibold text-white">{label}</p>
+        <p className="font-dm text-[12px] text-white/40 mt-0.5">{sub}</p>
+      </div>
+    </div>
+    {selected && (
+      <motion.div
+        initial={{ scale: 0 }} animate={{ scale: 1 }}
+        className="w-5 h-5 rounded-full grad-purple flex items-center justify-center ml-auto flex-shrink-0"
+      >
+        <FiCheck size={11} color="#fff" />
+      </motion.div>
+    )}
+  </label>
+);
+
+/* ─── Empty state ────────────────────────────────────────────────────────── */
+const EmptyCheckout = ({ onBrowse }) => (
+  <div className="flex flex-col items-center justify-center py-24 text-center relative z-[2]">
+    <motion.div animate={{ y: [0, -12, 0], rotate: [0, 5, -5, 0] }} transition={{ duration: 3.5, repeat: Infinity }}>
+      <span className="text-7xl">🛒</span>
+    </motion.div>
+    <h1 className="font-clash text-3xl font-bold text-white mt-6 mb-3">Nothing to Checkout</h1>
+    <p className="font-dm text-base text-white/40 mb-8 max-w-sm leading-relaxed">
+      Your cart is empty. Add some products before checking out.
+    </p>
+    <motion.button
+      onClick={onBrowse}
+      className="submit-btn flex items-center gap-2.5 px-9 py-4 rounded-full border-none text-white font-dm text-base font-bold cursor-pointer"
+      whileHover={{ scale: 1.04 }} whileTap={{ scale: .97 }}
+    >
+      <FiShoppingBag size={17} /> Browse Products <FiArrowRight size={16} />
+    </motion.button>
+  </div>
+);
+
+/* ─── Checkout ───────────────────────────────────────────────────────────── */
 const Checkout = () => {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const navigate  = useNavigate();
+  const dispatch  = useDispatch();
   const cartItems = useSelector(selectCartItems);
   const cartTotal = useSelector(selectCartTotal);
-  const { user } = useSelector((state) => state.auth);
+  const { user }  = useSelector(s => s.auth);
 
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    phone: user?.phone || '',
-    street: user?.address?.street || '',
-    city: user?.address?.city || '',
-    state: user?.address?.state || '',
-    zipCode: user?.address?.zipCode || '',
-    country: user?.address?.country || 'USA',
+    name:          user?.name            || '',
+    phone:         user?.phone           || '',
+    street:        user?.address?.street || '',
+    city:          user?.address?.city   || '',
+    state:         user?.address?.state  || '',
+    zipCode:       user?.address?.zipCode|| '',
+    country:       user?.address?.country|| 'USA',
     paymentMethod: 'cod',
   });
   const [loading, setLoading] = useState(false);
+  const [step, setStep]       = useState(1); // 1 = shipping, 2 = payment
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const handleChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const setPayment   = v => setFormData({ ...formData, paymentMethod: v });
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    
-    if (cartItems.length === 0) {
-      toast.error('Your cart is empty');
-      return;
-    }
-
+    if (cartItems.length === 0) { toast.error('Cart is empty'); return; }
     setLoading(true);
-
     try {
       const orderData = {
-        items: cartItems.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-        })),
+        items: cartItems.map(i => ({ productId: i.productId, quantity: i.quantity })),
         shippingAddress: {
-          name: formData.name,
-          phone: formData.phone,
-          street: formData.street,
-          city: formData.city,
-          state: formData.state,
-          zipCode: formData.zipCode,
-          country: formData.country,
+          name: formData.name, phone: formData.phone,
+          street: formData.street, city: formData.city,
+          state: formData.state, zipCode: formData.zipCode, country: formData.country,
         },
         paymentMethod: formData.paymentMethod,
       };
-
-      const { data } = await buyerAPI.createOrder(orderData);
-      
+      await buyerAPI.createOrder(orderData);
       dispatch(clearCart());
-      toast.success('Order placed successfully!');
+      toast.success('🎉 Order placed successfully!');
       navigate('/buyer/orders');
-    } catch (error) {
-      console.error('Checkout error:', error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
-  if (cartItems.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <h1 className="text-2xl font-bold mb-4">No Items to Checkout</h1>
-        <p className="text-gray-600 mb-6">Add items to your cart first</p>
-        <button onClick={() => navigate('/products')} className="btn-primary">
-          Browse Products
-        </button>
+  const shipping = cartTotal >= 50 ? 0 : 4.99;
+  const grandTotal = (cartTotal + shipping).toFixed(2);
+
+  const paymentOptions = [
+    { value: 'cod',  icon: <FiDollarSign size={18} style={{ color: '#34d399' }} />, label: 'Cash on Delivery', sub: 'Pay when you receive your order' },
+    { value: 'card', icon: <FiCreditCard size={18} style={{ color: '#60a5fa' }} />, label: 'Credit / Debit Card',  sub: 'Visa, Mastercard, Amex & more' },
+    { value: 'upi',  icon: <span style={{ fontSize: 18 }}>💳</span>,                label: 'UPI',                 sub: 'PhonePe, Google Pay, Paytm' },
+  ];
+
+  if (cartItems.length === 0) return (
+    <>
+      <Keyframes />
+      <div className="min-h-screen" style={{ background: '#060612' }}>
+        <div className="fixed top-0 right-0 -translate-y-[12%] w-[560px] h-[560px] rounded-full orb-a-anim pointer-events-none z-0 blur-[130px] opacity-[.13]" style={{ background: '#7c3aed' }} />
+        <div className="fixed bottom-0 left-0 -translate-x-[6%] w-[480px] h-[480px] rounded-full orb-b-anim pointer-events-none z-0 blur-[120px] opacity-[.1]" style={{ background: '#db2777' }} />
+        <div className="relative z-[2] max-w-5xl mx-auto px-6">
+          <EmptyCheckout onBrowse={() => navigate('/products')} />
+        </div>
       </div>
-    );
-  }
+    </>
+  );
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8">Checkout</h1>
+    <>
+      <Keyframes />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Checkout Form */}
-        <div className="lg:col-span-2">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Shipping Information */}
-            <div className="card">
-              <h2 className="text-xl font-bold mb-4">Shipping Information</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    required
-                    className="input-field"
-                    value={formData.name}
-                    onChange={handleChange}
-                  />
-                </div>
+      {/* Background */}
+      <div className="fixed top-0 right-0 -translate-y-[12%] w-[560px] h-[560px] rounded-full orb-a-anim pointer-events-none z-0 blur-[130px] opacity-[.13]" style={{ background: '#7c3aed' }} />
+      <div className="fixed bottom-0 left-0 -translate-x-[6%] w-[480px] h-[480px] rounded-full orb-b-anim pointer-events-none z-0 blur-[120px] opacity-[.1]" style={{ background: '#db2777' }} />
+      <div className="grid-anim fixed inset-0 z-0 pointer-events-none"
+        style={{ backgroundImage:'linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px)', backgroundSize:'64px 64px' }} />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    required
-                    className="input-field"
-                    value={formData.phone}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Street Address *
-                </label>
-                <input
-                  type="text"
-                  name="street"
-                  required
-                  className="input-field"
-                  value={formData.street}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    City *
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    required
-                    className="input-field"
-                    value={formData.city}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    State *
-                  </label>
-                  <input
-                    type="text"
-                    name="state"
-                    required
-                    className="input-field"
-                    value={formData.state}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ZIP Code *
-                  </label>
-                  <input
-                    type="text"
-                    name="zipCode"
-                    required
-                    className="input-field"
-                    value={formData.zipCode}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Payment Method */}
-            <div className="card">
-              <h2 className="text-xl font-bold mb-4">Payment Method</h2>
-              
-              <div className="space-y-3">
-                <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:border-primary-500">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="cod"
-                    checked={formData.paymentMethod === 'cod'}
-                    onChange={handleChange}
-                    className="mr-3"
-                  />
-                  <FiDollarSign className="w-6 h-6 mr-3 text-green-600" />
-                  <div>
-                    <div className="font-semibold">Cash on Delivery</div>
-                    <div className="text-sm text-gray-600">Pay when you receive</div>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:border-primary-500">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="card"
-                    checked={formData.paymentMethod === 'card'}
-                    onChange={handleChange}
-                    className="mr-3"
-                  />
-                  <FiCreditCard className="w-6 h-6 mr-3 text-blue-600" />
-                  <div>
-                    <div className="font-semibold">Credit/Debit Card</div>
-                    <div className="text-sm text-gray-600">Visa, Mastercard, etc.</div>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:border-primary-500">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="upi"
-                    checked={formData.paymentMethod === 'upi'}
-                    onChange={handleChange}
-                    className="mr-3"
-                  />
-                  <span className="w-6 h-6 mr-3">💳</span>
-                  <div>
-                    <div className="font-semibold">UPI</div>
-                    <div className="text-sm text-gray-600">PhonePe, Google Pay, etc.</div>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn-primary py-3 text-lg"
-            >
-              {loading ? 'Placing Order...' : `Place Order ($${cartTotal.toFixed(2)})`}
-            </button>
-          </form>
-        </div>
-
-        {/* Order Summary */}
-        <div className="lg:col-span-1">
-          <div className="card sticky top-24">
-            <h2 className="text-xl font-bold mb-4">Order Summary</h2>
-            
-            <div className="space-y-3 mb-4">
-              {cartItems.map((item) => (
-                <div key={item.productId} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{item.name} x {item.quantity}</span>
-                  <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t pt-4 space-y-2">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>${cartTotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Shipping</span>
-                <span className="text-green-600">Free</span>
-              </div>
-              <div className="flex justify-between text-xl font-bold pt-2 border-t">
-                <span>Total</span>
-                <span className="text-primary-600">${cartTotal.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Particles */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        {Array.from({ length: 12 }, (_, i) => (
+          <div key={i} className="float-p absolute rounded-full"
+            style={{ left:`${(i*73+11)%100}%`, top:`${(i*41+7)%100}%`, width:`${i%3+1}px`, height:`${i%3+1}px`, background:'rgba(255,255,255,.4)', '--dur':`${5+i%4}s`, '--delay':`${i*.35}s` }}
+          />
+        ))}
       </div>
-    </div>
+
+      <div className="relative z-[2] max-w-6xl mx-auto px-4 md:px-6 pb-24">
+
+        {/* ── Header ── */}
+        <motion.div initial={{ opacity:0, y:-18 }} animate={{ opacity:1, y:0 }} transition={{ duration:.6 }}
+          className="mb-8"
+        >
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 mb-5 text-xs font-dm">
+            {['Cart','Checkout','Confirmation'].map((crumb,i) => (
+              <span key={i} className="flex items-center gap-2">
+                {i > 0 && <FiChevronRight size={12} className="text-white/20" />}
+                <span className={i === 1 ? 'text-[#a78bfa] font-semibold' : 'text-white/30'}>{crumb}</span>
+              </span>
+            ))}
+          </div>
+
+          <span className="block font-dm text-[11px] font-semibold tracking-[4px] uppercase text-[#a78bfa] mb-2">
+            Almost there
+          </span>
+          <h1 className="font-clash text-3xl md:text-4xl font-bold text-white">Checkout</h1>
+        </motion.div>
+
+        {/* ── Step pills ── */}
+        <motion.div initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }} transition={{ delay:.12 }}
+          className="flex items-center gap-3 mb-8"
+        >
+          {[{ n:1, label:'Shipping' }, { n:2, label:'Payment' }].map((s, i) => (
+            <div key={s.n} className="flex items-center gap-3">
+              {i > 0 && (
+                <div className="hidden sm:block h-0.5 w-12 rounded-full step-line" />
+              )}
+              <button
+                onClick={() => setStep(s.n)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full font-dm text-sm font-semibold transition-all border-none cursor-pointer
+                  ${step === s.n
+                    ? 'grad-purple text-white'
+                    : step > s.n
+                      ? 'text-[#34d399] bg-[rgba(52,211,153,.12)]'
+                      : 'bg-white/[.07] text-white/45'
+                  }`}
+                style={step === s.n ? { boxShadow: '0 4px 16px rgba(124,58,237,.38)' } : {}}
+              >
+                {step > s.n
+                  ? <FiCheck size={14} />
+                  : <span className="w-4 h-4 rounded-full border border-current flex items-center justify-center text-[10px]">{s.n}</span>
+                }
+                {s.label}
+              </button>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* ── Grid ── */}
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {/* LEFT — form */}
+            <div className="lg:col-span-2 flex flex-col gap-5">
+
+              {/* Shipping */}
+              <AnimatePresence mode="wait">
+                {step === 1 && (
+                  <motion.div key="shipping"
+                    initial={{ opacity:0, x:-20 }} animate={{ opacity:1, x:0 }}
+                    exit={{ opacity:0, x:20 }}
+                    transition={{ duration:.35, ease:[.22,1,.36,1] }}
+                    className="flex flex-col gap-5"
+                  >
+                    <Section title="Shipping Information" icon={<FiMapPin size={16}/>} delay={.1}>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Field label="Full Name"    name="name"  value={formData.name}  onChange={handleChange} required placeholder="John Doe"     icon={<FiUser size={15}/>} />
+                        <Field label="Phone Number" name="phone" value={formData.phone} onChange={handleChange} required placeholder="+1 555 000 0000" icon={<FiPhone size={15}/>} />
+                      </div>
+
+                      <div className="mt-4">
+                        <Field label="Street Address" name="street" value={formData.street} onChange={handleChange} required placeholder="123 Main Street" icon={<FiMapPin size={15}/>} />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+                        <Field label="City"     name="city"    value={formData.city}    onChange={handleChange} required placeholder="New York" />
+                        <Field label="State"    name="state"   value={formData.state}   onChange={handleChange} required placeholder="NY" />
+                        <Field label="ZIP Code" name="zipCode" value={formData.zipCode} onChange={handleChange} required placeholder="10001" />
+                      </div>
+
+                      <div className="mt-4">
+                        <label className="block font-dm text-[12px] font-semibold text-white/40 uppercase tracking-[2.5px] mb-2">Country</label>
+                        <select name="country" value={formData.country} onChange={handleChange}
+                          className="input-dark w-full rounded-xl py-3 px-4 text-sm font-dm appearance-none"
+                        >
+                          {['USA','Canada','UK','Australia','India','Nepal','Germany','France'].map(c => (
+                            <option key={c} value={c} style={{ background:'#0f0f1f', color:'#fff' }}>{c}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </Section>
+
+                    {/* Assurance strip */}
+                    <motion.div initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }} transition={{ delay:.3 }}
+                      className="flex flex-wrap gap-4 justify-center py-4 px-6 rounded-2xl"
+                      style={{ background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.07)' }}
+                    >
+                      {[
+                        { icon:<FiShield size={14}/>, label:'Secure Checkout' },
+                        { icon:<FiTruck size={14}/>,  label:'Free over $50' },
+                        { icon:<FiCheck size={14}/>,  label:'Easy Returns' },
+                      ].map((a,i) => (
+                        <div key={i} className="flex items-center gap-2 font-dm text-[12px] text-white/35">
+                          <span className="text-[#a78bfa]">{a.icon}</span> {a.label}
+                        </div>
+                      ))}
+                    </motion.div>
+
+                    {/* Next step */}
+                    <motion.button type="button"
+                      onClick={() => setStep(2)}
+                      className="submit-btn w-full py-4 rounded-2xl border-none text-white font-dm text-base font-bold cursor-pointer flex items-center justify-center gap-3"
+                      whileHover={{ scale:1.02 }} whileTap={{ scale:.97 }}
+                      initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }} transition={{ delay:.35 }}
+                    >
+                      Continue to Payment <FiArrowRight size={17}/>
+                    </motion.button>
+                  </motion.div>
+                )}
+
+                {step === 2 && (
+                  <motion.div key="payment"
+                    initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }}
+                    exit={{ opacity:0, x:-20 }}
+                    transition={{ duration:.35, ease:[.22,1,.36,1] }}
+                    className="flex flex-col gap-5"
+                  >
+                    <Section title="Payment Method" icon={<FiCreditCard size={16}/>} delay={.05}>
+                      <div className="flex flex-col gap-3">
+                        {paymentOptions.map(opt => (
+                          <PayOption key={opt.value}
+                            value={opt.value} selected={formData.paymentMethod === opt.value}
+                            onChange={setPayment} icon={opt.icon} label={opt.label} sub={opt.sub}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Card fields (shown when card selected) */}
+                      <AnimatePresence>
+                        {formData.paymentMethod === 'card' && (
+                          <motion.div
+                            initial={{ opacity:0, height:0, y:-10 }}
+                            animate={{ opacity:1, height:'auto', y:0 }}
+                            exit={{ opacity:0, height:0, y:-10 }}
+                            transition={{ duration:.35 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-4 p-4 rounded-xl flex flex-col gap-3"
+                              style={{ background:'rgba(124,58,237,.08)', border:'1px solid rgba(124,58,237,.2)' }}
+                            >
+                              <p className="font-dm text-[11px] font-semibold text-[#a78bfa] tracking-[2px] uppercase">Card Details</p>
+                              <Field label="Card Number" name="cardNumber" placeholder="1234 5678 9012 3456" icon={<FiCreditCard size={15}/>} />
+                              <div className="grid grid-cols-2 gap-3">
+                                <Field label="Expiry" name="expiry" placeholder="MM / YY" />
+                                <Field label="CVV"    name="cvv"    placeholder="•••" />
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </Section>
+
+                    <div className="flex gap-3">
+                      <button type="button" onClick={() => setStep(1)}
+                        className="flex-1 py-4 rounded-2xl border-none font-dm text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-all text-white/60 hover:text-white/90"
+                        style={{ background:'rgba(255,255,255,.07)', border:'1px solid rgba(255,255,255,.1)' }}
+                      >
+                        ← Back
+                      </button>
+
+                      <motion.button type="submit"
+                        disabled={loading}
+                        className="submit-btn flex-[3] py-4 rounded-2xl border-none text-white font-clash text-base font-bold cursor-pointer flex items-center justify-center gap-3"
+                        whileHover={{ scale: loading ? 1 : 1.02 }}
+                        whileTap={{ scale: loading ? 1 : .97 }}
+                      >
+                        {loading ? (
+                          <>
+                            <div className="spinner w-5 h-5 rounded-full border-2 border-white/25 border-t-white flex-shrink-0" />
+                            Placing Order…
+                          </>
+                        ) : (
+                          <>
+                            Place Order · ${grandTotal} <FiArrowRight size={17}/>
+                          </>
+                        )}
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* RIGHT — Order summary */}
+            <div className="lg:col-span-1">
+              <motion.div
+                className="summary-card rounded-2xl p-6 sticky top-24"
+                initial={{ opacity:0, x:30 }} animate={{ opacity:1, x:0 }}
+                transition={{ duration:.6, delay:.2, ease:[.22,1,.36,1] }}
+              >
+                <h2 className="font-clash text-lg font-bold text-white mb-5">Order Summary</h2>
+
+                {/* Items */}
+                <div className="mb-4">
+                  {cartItems.map((item, i) => (
+                    <motion.div key={item.productId}
+                      className="order-item-row flex items-center gap-3 py-3"
+                      initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
+                      transition={{ delay:.25 + i*.05 }}
+                    >
+                      {/* Mini image */}
+                      <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0"
+                        style={{ background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.09)' }}
+                      >
+                        {item.image
+                          ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" onError={e=>{ e.target.src='https://placehold.co/40x40/0d0d1f/7c3aed?text=✦'; }}/>
+                          : <div className="w-full h-full flex items-center justify-center text-white/20 text-lg">✦</div>
+                        }
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="font-dm text-[13px] font-medium text-white/80 truncate">{item.name}</p>
+                        <p className="font-dm text-[11px] text-white/35 mt-0.5">× {item.quantity}</p>
+                      </div>
+
+                      <span className="font-clash text-[14px] font-bold flex-shrink-0 grad-text">
+                        ${(item.price * item.quantity).toFixed(2)}
+                      </span>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Totals */}
+                <div className="pt-4" style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="font-dm text-[13px] text-white/45">Subtotal</span>
+                    <span className="font-dm text-[13px] text-white/75 font-medium">${cartTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="font-dm text-[13px] text-white/45">Shipping</span>
+                    <span className={`font-dm text-[13px] font-semibold ${shipping === 0 ? 'text-[#34d399]' : 'text-white/75'}`}>
+                      {shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-baseline pt-4"
+                    style={{ borderTop: '1px solid rgba(255,255,255,.1)' }}
+                  >
+                    <span className="font-dm text-[14px] font-semibold text-white/60">Total</span>
+                    <motion.span
+                      key={grandTotal}
+                      className="font-clash text-2xl font-bold grad-text"
+                      initial={{ scale:.85, opacity:.5 }} animate={{ scale:1, opacity:1 }}
+                      transition={{ type:'spring', stiffness:350, damping:18 }}
+                    >
+                      ${grandTotal}
+                    </motion.span>
+                  </div>
+                  <p className="font-dm text-[11px] text-white/22 mt-1.5">Inclusive of all taxes</p>
+                </div>
+
+                {/* Payment badge */}
+                <div className="mt-5 flex items-center gap-2.5 py-3 px-4 rounded-xl"
+                  style={{ background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.07)' }}
+                >
+                  <FiShield size={14} className="text-[#34d399] flex-shrink-0" />
+                  <span className="font-dm text-[12px] text-white/38">100% secure & encrypted checkout</span>
+                </div>
+              </motion.div>
+            </div>
+
+          </div>
+        </form>
+      </div>
+    </>
   );
 };
 
