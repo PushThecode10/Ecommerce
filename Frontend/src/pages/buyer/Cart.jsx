@@ -98,6 +98,7 @@ const GlobalStyles = () => (
 
 /* ─── Cart Item ──────────────────────────────────────────────────────────── */
 const CartItem = ({ item, index, onQuantityChange, onRemove }) => {
+  console.log('Rendering CartItem:', item);
   const [removing, setRemoving] = useState(false);
   const itemTotal = (item.price * item.quantity).toFixed(2);
 
@@ -357,7 +358,7 @@ const Cart = () => {
                   <button className="promo-btn" onClick={handlePromo}>Apply</button>
                 </div>
               )}
-            </div>
+            </div> 
 
             {/* Line items */}
             <div style={{ marginBottom:20 }}>

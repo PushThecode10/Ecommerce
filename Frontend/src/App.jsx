@@ -76,7 +76,7 @@ function App() {
               <BuyerLayout />
             </ProtectedRoute>
           }
-        >
+        > 
           <Route index element={<BuyerDashboard />} />
           <Route path="orders" element={<BuyerOrders />} />
           <Route path="checkout" element={<Checkout />} />
