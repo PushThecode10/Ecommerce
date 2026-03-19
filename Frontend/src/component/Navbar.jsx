@@ -28,7 +28,12 @@ const Navbar = () => {
         <button className="signup-btn">Sign Up</button>
       </header>
       <main>
-        
+        <section className="hero">
+          <h2>Welcome to the House Details Form</h2>
+          <p>Fill out the form to submit your house details.</p>
+          <button className="get-started-btn">Get Started</button>
+        </section>
+
       </main>
     </div>
   );
