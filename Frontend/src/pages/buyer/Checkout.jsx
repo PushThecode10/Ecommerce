@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { selectCartItems, selectCartTotal, clearCart } from '../../Redux/createSlice';
+import { selectCartItems, selectCartTotal, clearCart } from '../../Redux/createSlice.js';
 import { buyerAPI } from '../../service/apiAuth.js';
 import toast from 'react-hot-toast';
+import CryptoJS from 'crypto-js';
+import { v4 as uuidv4 } from 'uuid';
 import {
   FiCreditCard, FiDollarSign, FiMapPin, FiUser,
   FiPhone, FiArrowRight, FiShoppingBag, FiShield,
-  FiTruck, FiCheck, FiChevronRight,
+  FiTruck, FiCheck, FiChevronRight, FiMail, FiGlobe,
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -39,10 +41,10 @@ const Keyframes = () => (
     .float-p    { animation: float-up var(--dur,5s) ease-in-out var(--delay,0s) infinite; }
     .spinner    { animation: spin 1s linear infinite; }
 
-    /* gradients that Tailwind can't do inline */
     .grad-purple  { background: linear-gradient(135deg,#7c3aed,#6d28d9) !important; }
     .grad-text    { background: linear-gradient(135deg,#a78bfa,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
     .grad-pink    { background: linear-gradient(135deg,#ec4899,#be185d) !important; }
+    .grad-esewa   { background: linear-gradient(135deg,#4caf50,#2e7d32) !important; }
     .section-card { background: rgba(255,255,255,.045) !important; border: 1px solid rgba(255,255,255,.09) !important; }
     .input-dark {
       background: rgba(255,255,255,.07) !important;
@@ -57,7 +59,6 @@ const Keyframes = () => (
       border-color: rgba(124,58,237,.6) !important;
       box-shadow: 0 0 0 3px rgba(124,58,237,.15);
     }
-    /* Payment radio option */
     .pay-option {
       background: rgba(255,255,255,.045) !important;
       border: 1px solid rgba(255,255,255,.1) !important;
@@ -74,8 +75,12 @@ const Keyframes = () => (
       background: rgba(124,58,237,.12) !important;
       box-shadow: 0 0 0 3px rgba(124,58,237,.12);
     }
+    .pay-option.esewa-selected {
+      border-color: rgba(76,175,80,.55) !important;
+      background: rgba(76,175,80,.1) !important;
+      box-shadow: 0 0 0 3px rgba(76,175,80,.12);
+    }
     .pay-option input[type="radio"] { display: none; }
-    /* Custom radio dot */
     .radio-dot {
       width: 18px; height: 18px; border-radius: 50%;
       border: 2px solid rgba(255,255,255,.25);
@@ -83,17 +88,19 @@ const Keyframes = () => (
       display: flex; align-items: center; justify-content: center;
       transition: border-color .2s, background .2s;
     }
-    .pay-option.selected .radio-dot {
+    .pay-option.selected .radio-dot,
+    .pay-option.esewa-selected .radio-dot {
       border-color: #7c3aed;
       background: #7c3aed;
     }
+    .pay-option.esewa-selected .radio-dot { border-color: #4caf50; background: #4caf50; }
     .radio-inner {
       width: 7px; height: 7px; border-radius: 50%; background: #fff;
       transform: scale(0); transition: transform .2s;
     }
-    .pay-option.selected .radio-inner { transform: scale(1); }
+    .pay-option.selected .radio-inner,
+    .pay-option.esewa-selected .radio-inner { transform: scale(1); }
 
-    /* Submit btn */
     .submit-btn {
       background: linear-gradient(135deg,#7c3aed,#6d28d9) !important;
       box-shadow: 0 6px 28px rgba(124,58,237,.42);
@@ -102,18 +109,29 @@ const Keyframes = () => (
     .submit-btn:hover { transform: scale(1.02); box-shadow: 0 8px 40px rgba(124,58,237,.6) !important; }
     .submit-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
-    /* Step indicator */
+    .esewa-btn {
+      background: linear-gradient(135deg,#4caf50,#2e7d32) !important;
+      box-shadow: 0 6px 28px rgba(76,175,80,.42);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .esewa-btn:hover { transform: scale(1.02); box-shadow: 0 8px 40px rgba(76,175,80,.6) !important; }
+
     .step-line { background: rgba(255,255,255,.08); }
     .step-line.done { background: linear-gradient(90deg,#7c3aed,#ec4899); }
 
-    /* Order item row */
     .order-item-row { border-bottom: 1px solid rgba(255,255,255,.06); }
     .order-item-row:last-child { border-bottom: none; }
 
-    /* Summary card */
     .summary-card {
       background: rgba(255,255,255,.042) !important;
       border: 1px solid rgba(255,255,255,.09) !important;
+    }
+
+    /* eSewa badge */
+    .esewa-badge {
+      background: linear-gradient(135deg, rgba(76,175,80,.15), rgba(46,125,50,.1));
+      border: 1px solid rgba(76,175,80,.3);
+      border-radius: 12px;
     }
 
     ::selection { background: rgba(124,58,237,.4); color: #fff; }
@@ -121,6 +139,17 @@ const Keyframes = () => (
     ::-webkit-scrollbar-track { background: #060612; }
     ::-webkit-scrollbar-thumb { background: linear-gradient(#7c3aed,#ec4899); border-radius: 4px; }
   `}</style>
+);
+
+/* ─── eSewa logo SVG ─────────────────────────────────────────────────────── */
+const EsewaLogo = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+    <circle cx="20" cy="20" r="20" fill="#4caf50"/>
+    <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle"
+      style={{ fontSize: 11, fontWeight: 700, fill: '#fff', fontFamily: 'DM Sans, sans-serif' }}>
+      eSewa
+    </text>
+  </svg>
 );
 
 /* ─── Section wrapper ────────────────────────────────────────────────────── */
@@ -164,34 +193,37 @@ const Field = ({ label, name, type = 'text', value, onChange, required, placehol
 );
 
 /* ─── Payment option ─────────────────────────────────────────────────────── */
-const PayOption = ({ value, selected, onChange, icon, label, sub }) => (
-  <label className={`pay-option flex items-center gap-4 p-4 ${selected ? 'selected' : ''}`}
-    onClick={() => onChange(value)}
-  >
-    <input type="radio" name="paymentMethod" value={value} checked={selected} readOnly />
-    <div className="radio-dot"><div className="radio-inner" /></div>
-    <div className="flex items-center gap-3 flex-1">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0
-        ${selected ? 'grad-purple' : 'bg-white/[.07]'}`}
-        style={selected ? { boxShadow: '0 4px 14px rgba(124,58,237,.35)' } : {}}
-      >
-        {icon}
+const PayOption = ({ value, selected, onChange, icon, label, sub, isEsewa }) => {
+  const selClass = isEsewa && selected ? 'esewa-selected' : selected ? 'selected' : '';
+  return (
+    <label className={`pay-option flex items-center gap-4 p-4 ${selClass}`}
+      onClick={() => onChange(value)}
+    >
+      <input type="radio" name="paymentMethod" value={value} checked={selected} readOnly />
+      <div className="radio-dot"><div className="radio-inner" /></div>
+      <div className="flex items-center gap-3 flex-1">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0
+          ${selected ? (isEsewa ? 'grad-esewa' : 'grad-purple') : 'bg-white/[.07]'}`}
+          style={selected ? { boxShadow: isEsewa ? '0 4px 14px rgba(76,175,80,.35)' : '0 4px 14px rgba(124,58,237,.35)' } : {}}
+        >
+          {icon}
+        </div>
+        <div>
+          <p className="font-clash text-[14px] font-semibold text-white">{label}</p>
+          <p className="font-dm text-[12px] text-white/40 mt-0.5">{sub}</p>
+        </div>
       </div>
-      <div>
-        <p className="font-clash text-[14px] font-semibold text-white">{label}</p>
-        <p className="font-dm text-[12px] text-white/40 mt-0.5">{sub}</p>
-      </div>
-    </div>
-    {selected && (
-      <motion.div
-        initial={{ scale: 0 }} animate={{ scale: 1 }}
-        className="w-5 h-5 rounded-full grad-purple flex items-center justify-center ml-auto flex-shrink-0"
-      >
-        <FiCheck size={11} color="#fff" />
-      </motion.div>
-    )}
-  </label>
-);
+      {selected && (
+        <motion.div
+          initial={{ scale: 0 }} animate={{ scale: 1 }}
+          className={`w-5 h-5 rounded-full flex items-center justify-center ml-auto flex-shrink-0 ${isEsewa ? 'grad-esewa' : 'grad-purple'}`}
+        >
+          <FiCheck size={11} color="#fff" />
+        </motion.div>
+      )}
+    </label>
+  );
+};
 
 /* ─── Empty state ────────────────────────────────────────────────────────── */
 const EmptyCheckout = ({ onBrowse }) => (
@@ -213,6 +245,44 @@ const EmptyCheckout = ({ onBrowse }) => (
   </div>
 );
 
+/* ─── eSewa hidden form submitter ───────────────────────────────────────── */
+const submitEsewaForm = ({ totalPayable, transactionUuid, signature, formData, taxAmount }) => {
+  // Remove any existing eSewa form
+  const existing = document.getElementById('esewa-form');
+  if (existing) existing.remove();
+
+  const form = document.createElement('form');
+  form.id = 'esewa-form';
+  form.action = 'https://rc-epay.esewa.com.np/api/epay/main/v2/form';
+  form.method = 'POST';
+  form.style.display = 'none';
+
+  const fields = {
+    amount:                   formData.cartTotal,
+    tax_amount:               taxAmount,
+    total_amount:             totalPayable,
+    transaction_uuid:         transactionUuid,
+    product_code:             'EPAYTEST',
+    product_service_charge:   '0',
+    product_delivery_charge:  '0',
+    success_url:              `${window.location.origin}/success`,
+    failure_url:              `${window.location.origin}/failure`,
+    signed_field_names:       'total_amount,transaction_uuid,product_code',
+    signature:                signature,
+  };
+
+  Object.entries(fields).forEach(([k, v]) => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = k;
+    input.value = v;
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
+};
+
 /* ─── Checkout ───────────────────────────────────────────────────────────── */
 const Checkout = () => {
   const navigate  = useNavigate();
@@ -222,32 +292,86 @@ const Checkout = () => {
   const { user }  = useSelector(s => s.auth);
 
   const [formData, setFormData] = useState({
+    // Personal info
     name:          user?.name            || '',
+    email:         user?.email           || '',
     phone:         user?.phone           || '',
+    // Address
     street:        user?.address?.street || '',
     city:          user?.address?.city   || '',
     state:         user?.address?.state  || '',
     zipCode:       user?.address?.zipCode|| '',
-    country:       user?.address?.country|| 'USA',
+    country:       user?.address?.country|| 'Nepal',
+    // Payment
     paymentMethod: 'cod',
+    // Card fields
+    cardNumber:    '',
+    expiry:        '',
+    cvv:           '',
+    cardName:      '',
   });
+
   const [loading, setLoading] = useState(false);
   const [step, setStep]       = useState(1); // 1 = shipping, 2 = payment
 
   const handleChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
   const setPayment   = v => setFormData({ ...formData, paymentMethod: v });
 
+  // eSewa amounts
+  const taxAmount      = 0;
+  const serviceCharge  = 0;
+  const deliveryCharge = cartTotal >= 50 ? 0 : 4.99;
+  const totalPayable   = parseFloat((cartTotal + deliveryCharge + taxAmount + serviceCharge).toFixed(2));
+
   const handleSubmit = async e => {
     e.preventDefault();
     if (cartItems.length === 0) { toast.error('Cart is empty'); return; }
+
+    // ─── eSewa flow ───────────────────────────────────────────────────────
+    if (formData.paymentMethod === 'esewa') {
+      setLoading(true);
+      try {
+        // Save order first (pending), then redirect to eSewa
+        const transactionUuid = uuidv4();
+        const product_code    = 'EPAYTEST';
+        const message         = `total_amount=${totalPayable},transaction_uuid=${transactionUuid},product_code=${product_code}`;
+        const hash            = CryptoJS.HmacSHA256(message, '8gBm/:&EnhH.1/q');
+        const signature       = CryptoJS.enc.Base64.stringify(hash);
+
+        // Optionally: save a pending order to your backend before redirecting
+        // await buyerAPI.createOrder({ ...orderData, paymentMethod: 'esewa', transactionUuid });
+
+        toast.success('Redirecting to eSewa…');
+        submitEsewaForm({
+          totalPayable,
+          transactionUuid,
+          signature,
+          formData: { ...formData, cartTotal },
+          taxAmount,
+        });
+      } catch (err) {
+        console.error(err);
+        toast.error('eSewa redirect failed');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // ─── COD / Card / UPI flow ────────────────────────────────────────────
     setLoading(true);
     try {
       const orderData = {
         items: cartItems.map(i => ({ productId: i.productId, quantity: i.quantity })),
         shippingAddress: {
-          name: formData.name, phone: formData.phone,
-          street: formData.street, city: formData.city,
-          state: formData.state, zipCode: formData.zipCode, country: formData.country,
+          name:    formData.name,
+          email:   formData.email,
+          phone:   formData.phone,
+          street:  formData.street,
+          city:    formData.city,
+          state:   formData.state,
+          zipCode: formData.zipCode,
+          country: formData.country,
         },
         paymentMethod: formData.paymentMethod,
       };
@@ -255,17 +379,22 @@ const Checkout = () => {
       dispatch(clearCart());
       toast.success('🎉 Order placed successfully!');
       navigate('/buyer/orders');
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to place order. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const shipping = cartTotal >= 50 ? 0 : 4.99;
-  const grandTotal = (cartTotal + shipping).toFixed(2);
+  const shipping   = deliveryCharge;
+  const grandTotal = totalPayable.toFixed(2);
 
   const paymentOptions = [
-    { value: 'cod',  icon: <FiDollarSign size={18} style={{ color: '#34d399' }} />, label: 'Cash on Delivery', sub: 'Pay when you receive your order' },
-    { value: 'card', icon: <FiCreditCard size={18} style={{ color: '#60a5fa' }} />, label: 'Credit / Debit Card',  sub: 'Visa, Mastercard, Amex & more' },
-    { value: 'upi',  icon: <span style={{ fontSize: 18 }}>💳</span>,                label: 'UPI',                 sub: 'PhonePe, Google Pay, Paytm' },
+    { value: 'cod',   icon: <FiDollarSign size={18} style={{ color: '#34d399' }} />, label: 'Cash on Delivery',    sub: 'Pay when you receive your order' },
+    { value: 'esewa', icon: <EsewaLogo size={22} />,                                  label: 'eSewa',               sub: 'Fast & secure digital wallet', isEsewa: true },
+    { value: 'card',  icon: <FiCreditCard size={18} style={{ color: '#60a5fa' }} />, label: 'Credit / Debit Card', sub: 'Visa, Mastercard, Amex & more' },
+    { value: 'upi',   icon: <span style={{ fontSize: 18 }}>💳</span>,                label: 'UPI',                 sub: 'PhonePe, Google Pay, Paytm' },
   ];
 
   if (cartItems.length === 0) return (
@@ -306,7 +435,6 @@ const Checkout = () => {
         <motion.div initial={{ opacity:0, y:-18 }} animate={{ opacity:1, y:0 }} transition={{ duration:.6 }}
           className="mb-8"
         >
-          {/* Breadcrumb */}
           <div className="flex items-center gap-2 mb-5 text-xs font-dm">
             {['Cart','Checkout','Confirmation'].map((crumb,i) => (
               <span key={i} className="flex items-center gap-2">
@@ -315,7 +443,6 @@ const Checkout = () => {
               </span>
             ))}
           </div>
-
           <span className="block font-dm text-[11px] font-semibold tracking-[4px] uppercase text-[#a78bfa] mb-2">
             Almost there
           </span>
@@ -328,9 +455,7 @@ const Checkout = () => {
         >
           {[{ n:1, label:'Shipping' }, { n:2, label:'Payment' }].map((s, i) => (
             <div key={s.n} className="flex items-center gap-3">
-              {i > 0 && (
-                <div className="hidden sm:block h-0.5 w-12 rounded-full step-line" />
-              )}
+              {i > 0 && <div className="hidden sm:block h-0.5 w-12 rounded-full step-line" />}
               <button
                 onClick={() => setStep(s.n)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full font-dm text-sm font-semibold transition-all border-none cursor-pointer
@@ -359,7 +484,6 @@ const Checkout = () => {
             {/* LEFT — form */}
             <div className="lg:col-span-2 flex flex-col gap-5">
 
-              {/* Shipping */}
               <AnimatePresence mode="wait">
                 {step === 1 && (
                   <motion.div key="shipping"
@@ -368,31 +492,45 @@ const Checkout = () => {
                     transition={{ duration:.35, ease:[.22,1,.36,1] }}
                     className="flex flex-col gap-5"
                   >
-                    <Section title="Shipping Information" icon={<FiMapPin size={16}/>} delay={.1}>
+                    {/* ── Personal Information ── */}
+                    <Section title="Personal Information" icon={<FiUser size={16}/>} delay={.05}>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Field label="Full Name"    name="name"  value={formData.name}  onChange={handleChange} required placeholder="John Doe"     icon={<FiUser size={15}/>} />
-                        <Field label="Phone Number" name="phone" value={formData.phone} onChange={handleChange} required placeholder="+1 555 000 0000" icon={<FiPhone size={15}/>} />
+                        <Field label="Full Name"     name="name"  value={formData.name}  onChange={handleChange} required placeholder="John Doe"           icon={<FiUser size={15}/>} />
+                        <Field label="Email Address" name="email" value={formData.email} onChange={handleChange} required placeholder="john@example.com"   icon={<FiMail size={15}/>} type="email" />
                       </div>
-
                       <div className="mt-4">
-                        <Field label="Street Address" name="street" value={formData.street} onChange={handleChange} required placeholder="123 Main Street" icon={<FiMapPin size={15}/>} />
+                        <Field label="Phone Number" name="phone" value={formData.phone} onChange={handleChange} required placeholder="+977 9800000000" icon={<FiPhone size={15}/>} />
+                      </div>
+                    </Section>
+
+                    {/* ── Shipping Address ── */}
+                    <Section title="Shipping Address" icon={<FiMapPin size={16}/>} delay={.1}>
+                      <div className="mt-0">
+                        <Field label="Street Address" name="street" value={formData.street} onChange={handleChange} required placeholder="123 Main Street, Thamel" icon={<FiMapPin size={15}/>} />
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                        <Field label="City"     name="city"    value={formData.city}    onChange={handleChange} required placeholder="New York" />
-                        <Field label="State"    name="state"   value={formData.state}   onChange={handleChange} required placeholder="NY" />
-                        <Field label="ZIP Code" name="zipCode" value={formData.zipCode} onChange={handleChange} required placeholder="10001" />
+                        <Field label="City"     name="city"    value={formData.city}    onChange={handleChange} required placeholder="Kathmandu" />
+                        <Field label="Province" name="state"   value={formData.state}   onChange={handleChange} required placeholder="Bagmati" />
+                        <Field label="ZIP Code" name="zipCode" value={formData.zipCode} onChange={handleChange} required placeholder="44600" />
                       </div>
 
                       <div className="mt-4">
-                        <label className="block font-dm text-[12px] font-semibold text-white/40 uppercase tracking-[2.5px] mb-2">Country</label>
-                        <select name="country" value={formData.country} onChange={handleChange}
-                          className="input-dark w-full rounded-xl py-3 px-4 text-sm font-dm appearance-none"
-                        >
-                          {['USA','Canada','UK','Australia','India','Nepal','Germany','France'].map(c => (
-                            <option key={c} value={c} style={{ background:'#0f0f1f', color:'#fff' }}>{c}</option>
-                          ))}
-                        </select>
+                        <label className="block font-dm text-[12px] font-semibold text-white/40 uppercase tracking-[2.5px] mb-2">
+                          Country <span className="text-[#ec4899] ml-1">*</span>
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none">
+                            <FiGlobe size={15}/>
+                          </span>
+                          <select name="country" value={formData.country} onChange={handleChange}
+                            className="input-dark w-full rounded-xl py-3 pl-10 pr-4 text-sm font-dm appearance-none"
+                          >
+                            {['Nepal','USA','Canada','UK','Australia','India','Germany','France'].map(c => (
+                              <option key={c} value={c} style={{ background:'#0f0f1f', color:'#fff' }}>{c}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     </Section>
 
@@ -437,11 +575,45 @@ const Checkout = () => {
                           <PayOption key={opt.value}
                             value={opt.value} selected={formData.paymentMethod === opt.value}
                             onChange={setPayment} icon={opt.icon} label={opt.label} sub={opt.sub}
+                            isEsewa={opt.isEsewa}
                           />
                         ))}
                       </div>
 
-                      {/* Card fields (shown when card selected) */}
+                      {/* eSewa info panel */}
+                      <AnimatePresence>
+                        {formData.paymentMethod === 'esewa' && (
+                          <motion.div
+                            initial={{ opacity:0, height:0, y:-10 }}
+                            animate={{ opacity:1, height:'auto', y:0 }}
+                            exit={{ opacity:0, height:0, y:-10 }}
+                            transition={{ duration:.35 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-4 p-4 esewa-badge flex flex-col gap-3">
+                              <div className="flex items-center gap-2.5">
+                                <EsewaLogo size={28} />
+                                <div>
+                                  <p className="font-clash text-[13px] font-semibold text-[#4caf50]">Pay with eSewa</p>
+                                  <p className="font-dm text-[11px] text-white/40 mt-0.5">You'll be redirected to eSewa to complete payment</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between pt-2"
+                                style={{ borderTop: '1px solid rgba(76,175,80,.2)' }}
+                              >
+                                <span className="font-dm text-[12px] text-white/50">Total payable via eSewa</span>
+                                <span className="font-clash text-[18px] font-bold text-[#4caf50]">Rs. {grandTotal}</span>
+                              </div>
+                              <p className="font-dm text-[11px] text-white/30 flex items-center gap-1.5">
+                                <FiShield size={11} className="text-[#4caf50]" />
+                                Encrypted & secured by eSewa Payment Gateway (Test Mode)
+                              </p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Card fields */}
                       <AnimatePresence>
                         {formData.paymentMethod === 'card' && (
                           <motion.div
@@ -455,10 +627,11 @@ const Checkout = () => {
                               style={{ background:'rgba(124,58,237,.08)', border:'1px solid rgba(124,58,237,.2)' }}
                             >
                               <p className="font-dm text-[11px] font-semibold text-[#a78bfa] tracking-[2px] uppercase">Card Details</p>
-                              <Field label="Card Number" name="cardNumber" placeholder="1234 5678 9012 3456" icon={<FiCreditCard size={15}/>} />
+                              <Field label="Name on Card"  name="cardName"   value={formData.cardName}   onChange={handleChange} placeholder="John Doe"              icon={<FiUser size={15}/>} />
+                              <Field label="Card Number"   name="cardNumber" value={formData.cardNumber} onChange={handleChange} placeholder="1234 5678 9012 3456"   icon={<FiCreditCard size={15}/>} />
                               <div className="grid grid-cols-2 gap-3">
-                                <Field label="Expiry" name="expiry" placeholder="MM / YY" />
-                                <Field label="CVV"    name="cvv"    placeholder="•••" />
+                                <Field label="Expiry" name="expiry" value={formData.expiry} onChange={handleChange} placeholder="MM / YY" />
+                                <Field label="CVV"    name="cvv"    value={formData.cvv}    onChange={handleChange} placeholder="•••" />
                               </div>
                             </div>
                           </motion.div>
@@ -476,14 +649,20 @@ const Checkout = () => {
 
                       <motion.button type="submit"
                         disabled={loading}
-                        className="submit-btn flex-[3] py-4 rounded-2xl border-none text-white font-clash text-base font-bold cursor-pointer flex items-center justify-center gap-3"
+                        className={`flex-[3] py-4 rounded-2xl border-none text-white font-clash text-base font-bold cursor-pointer flex items-center justify-center gap-3
+                          ${formData.paymentMethod === 'esewa' ? 'esewa-btn' : 'submit-btn'}`}
                         whileHover={{ scale: loading ? 1 : 1.02 }}
                         whileTap={{ scale: loading ? 1 : .97 }}
                       >
                         {loading ? (
                           <>
                             <div className="spinner w-5 h-5 rounded-full border-2 border-white/25 border-t-white flex-shrink-0" />
-                            Placing Order…
+                            {formData.paymentMethod === 'esewa' ? 'Redirecting to eSewa…' : 'Placing Order…'}
+                          </>
+                        ) : formData.paymentMethod === 'esewa' ? (
+                          <>
+                            <EsewaLogo size={20} />
+                            Pay Rs.{grandTotal} via eSewa <FiArrowRight size={17}/>
                           </>
                         ) : (
                           <>
@@ -514,7 +693,6 @@ const Checkout = () => {
                       initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
                       transition={{ delay:.25 + i*.05 }}
                     >
-                      {/* Mini image */}
                       <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0"
                         style={{ background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.09)' }}
                       >
@@ -542,12 +720,18 @@ const Checkout = () => {
                     <span className="font-dm text-[13px] text-white/45">Subtotal</span>
                     <span className="font-dm text-[13px] text-white/75 font-medium">${cartTotal.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center mb-4">
+                  <div className="flex justify-between items-center mb-2">
                     <span className="font-dm text-[13px] text-white/45">Shipping</span>
                     <span className={`font-dm text-[13px] font-semibold ${shipping === 0 ? 'text-[#34d399]' : 'text-white/75'}`}>
                       {shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}
                     </span>
                   </div>
+                  {taxAmount > 0 && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-dm text-[13px] text-white/45">Tax</span>
+                      <span className="font-dm text-[13px] text-white/75">${taxAmount.toFixed(2)}</span>
+                    </div>
+                  )}
 
                   <div className="flex justify-between items-baseline pt-4"
                     style={{ borderTop: '1px solid rgba(255,255,255,.1)' }}
@@ -555,11 +739,11 @@ const Checkout = () => {
                     <span className="font-dm text-[14px] font-semibold text-white/60">Total</span>
                     <motion.span
                       key={grandTotal}
-                      className="font-clash text-2xl font-bold grad-text"
+                      className={`font-clash text-2xl font-bold ${formData.paymentMethod === 'esewa' ? 'text-[#4caf50]' : 'grad-text'}`}
                       initial={{ scale:.85, opacity:.5 }} animate={{ scale:1, opacity:1 }}
                       transition={{ type:'spring', stiffness:350, damping:18 }}
                     >
-                      ${grandTotal}
+                      {formData.paymentMethod === 'esewa' ? `Rs. ${grandTotal}` : `$${grandTotal}`}
                     </motion.span>
                   </div>
                   <p className="font-dm text-[11px] text-white/22 mt-1.5">Inclusive of all taxes</p>
@@ -572,6 +756,19 @@ const Checkout = () => {
                   <FiShield size={14} className="text-[#34d399] flex-shrink-0" />
                   <span className="font-dm text-[12px] text-white/38">100% secure & encrypted checkout</span>
                 </div>
+
+                {/* eSewa badge in summary */}
+                <AnimatePresence>
+                  {formData.paymentMethod === 'esewa' && (
+                    <motion.div
+                      initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:8 }}
+                      className="mt-3 flex items-center gap-2.5 py-3 px-4 rounded-xl esewa-badge"
+                    >
+                      <EsewaLogo size={16} />
+                      <span className="font-dm text-[12px] text-[#4caf50]/80">Paying via eSewa Gateway</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             </div>
 

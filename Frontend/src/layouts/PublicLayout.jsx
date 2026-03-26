@@ -10,7 +10,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../Redux/authSlice.js';
 import { selectCartItemCount } from '../Redux/createSlice.js';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
-
+// public layout with top navbar, animated background orbs, scroll progress bar, and back-to-top button. The navbar includes a logo, navigation links, cart icon with item count badge, and user authentication actions (login/signup or user chip and logout). The layout uses global styles for consistent theming and responsive design. The main content is rendered via an Outlet for nested routes.
 /* ─── Global Styles ─────────────────────────────────────────────────────── */
 const GlobalStyles = () => (
   <style>{`
