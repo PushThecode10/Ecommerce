@@ -10,15 +10,16 @@ const __dirname = path.dirname(__filename);
 // 📁 Create uploads directories if not exists
 const uploadDir = path.join(__dirname, "../uploads");
 const productImagesDir = path.join(uploadDir, "products");
+const categoryImagesDir = path.join(uploadDir, "categories");
 
-[uploadDir, productImagesDir].forEach((dir) => {
+[uploadDir, productImagesDir, categoryImagesDir].forEach((dir) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 });
 
-// 🗄️ Storage configuration
-const storage = multer.diskStorage({
+// 🗄️ Storage configuration for products
+const productStorage = multer.diskStorage({
   destination(req, file, cb) {
     cb(null, productImagesDir);
   },
@@ -26,6 +27,19 @@ const storage = multer.diskStorage({
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
     const name = `${file.fieldname}-${uniqueSuffix}${ext}`;
+    cb(null, name);
+  },
+});
+
+// 🗄️ Storage configuration for categories
+const categoryStorage = multer.diskStorage({
+  destination(req, file, cb) {
+    cb(null, categoryImagesDir);
+  },
+  filename(req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    const name = `category-${uniqueSuffix}${ext}`;
     cb(null, name);
   },
 });
@@ -49,9 +63,18 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// 📦 Multer instance
-const upload = multer({
-  storage,
+// 📦 Multer instance for products
+const productUpload = multer({
+  storage: productStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+  },
+  fileFilter,
+});
+
+// 📦 Multer instance for categories
+const categoryUpload = multer({
+  storage: categoryStorage,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB
   },
@@ -59,7 +82,10 @@ const upload = multer({
 });
 
 // 🧾 Upload multiple product images (max 5)
-export const uploadProductImages = upload.array("images", 5);
+export const uploadProductImages = productUpload.array("images", 5);
+
+// 🧾 Upload single category image
+export const uploadCategoryImage = categoryUpload.single("image");
 
 // ⚠️ Multer error handler
 export const handleMulterError = (err, req, res, next) => {

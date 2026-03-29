@@ -77,6 +77,7 @@ export const sellerAPI = {
   getOrders: (params) => api.get('/seller/orders', { params }),
   updateOrderStatus: (orderId, status) => api.put(`/seller/orders/${orderId}/status`, { status }),
   getDashboardStats: () => api.get('/seller/stats/dashboard'),
+
 };
 
 // Admin API
@@ -102,7 +103,7 @@ export const publicAPI = {
   getFeaturedProducts: (params) => api.get('/products/featured', { params }),
   
   // Get categories
-  getCategories: () => api.get('/products/categories'),
+  getCategories: () => api.get('/categories/all'),
   
   // Search products
   searchProducts: (query) => api.get('/products/search', { params: { q: query } }),

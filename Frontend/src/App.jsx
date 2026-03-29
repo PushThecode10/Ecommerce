@@ -36,6 +36,11 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminSellers from './pages/admin/AdminSellers';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
+import CategoryForm from './pages/admin/CategoryForm';
+import AddCategory from './pages/seller/AddCategory';
+import Categories from './pages/seller/Categories';
+import PaymentSuccess from './pages/buyer/SuccessPayment';
+import PaymentFailure from './pages/buyer/PaymentFailure';
 
 // Protected Route
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -80,6 +85,8 @@ function App() {
           <Route index element={<BuyerDashboard />} />
           <Route path="orders" element={<BuyerOrders />} />
           <Route path="checkout" element={<Checkout />} />
+          <Route path="success" element={<PaymentSuccess />} />
+          <Route path='failure' element={<PaymentFailure />} />
         </Route>
 
         {/* Seller Routes */}
@@ -96,6 +103,8 @@ function App() {
           <Route path="products/add" element={<AddProduct />} />
           <Route path="products/edit/:id" element={<EditProduct />} />
           <Route path="orders" element={<SellerOrders />} />
+          <Route path="categories/add" element={<AddCategory />} />
+          <Route path="categories/get" element={<Categories />} />
         </Route>
 
         {/* Admin Routes */}
@@ -112,6 +121,8 @@ function App() {
           <Route path="sellers" element={<AdminSellers />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="orders" element={<AdminOrders />} />
+          <Route path="categories/add" element={<CategoryForm />} />
+          <Route path="categories/edit/:id" element={<CategoryForm />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

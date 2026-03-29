@@ -265,8 +265,8 @@ const submitEsewaForm = ({ totalPayable, transactionUuid, signature, formData, t
     product_code:             'EPAYTEST',
     product_service_charge:   '0',
     product_delivery_charge:  '0',
-    success_url:              `${window.location.origin}/success`,
-    failure_url:              `${window.location.origin}/failure`,
+    success_url:              `/buyer/success`,
+    failure_url:              `/buyer/failure`,
     signed_field_names:       'total_amount,transaction_uuid,product_code',
     signature:                signature,
   };
@@ -375,6 +375,7 @@ const Checkout = () => {
         },
         paymentMethod: formData.paymentMethod,
       };
+      console.log('Placing order with data:', orderData);
       await buyerAPI.createOrder(orderData);
       dispatch(clearCart());
       toast.success('🎉 Order placed successfully!');

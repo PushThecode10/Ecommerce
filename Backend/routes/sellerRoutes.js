@@ -30,4 +30,5 @@ router.put('/orders/:orderId/status', sellerController.updateOrderStatus);
 router.get('/stats/dashboard', sellerController.getDashboardStats);
 router.get('/stats/sales', sellerController.getSalesReport);
 
+
 export default router;

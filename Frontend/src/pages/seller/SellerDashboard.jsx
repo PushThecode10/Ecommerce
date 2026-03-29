@@ -357,7 +357,6 @@ const Dashboard = () => {
             >
               <span style={{ color:'rgba(255,237,213,.7)' }}>{greeting}, </span>
               <span className="animated-grad">{user?.name?.split(' ')[0] || 'Seller'}</span>
-              {' '}<span className="wave-hand">👋</span>
             </motion.h1>
 
             <motion.p initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ delay:.22 }}

@@ -6,6 +6,7 @@ import {
   FiLogOut, FiMenu, FiX, FiPlus, FiChevronRight,
   FiZap, FiTrendingUp, FiArrowUpRight,
 } from 'react-icons/fi';
+import { TbBlocks } from "react-icons/tb";
 import { useState, useEffect } from 'react';
 import { authAPI } from '../service/apiAuth.js';
 import { motion, AnimatePresence } from 'motion/react';
@@ -227,6 +228,7 @@ const SellerLayout = () => {
     { name:'Add Product', path:'/seller/products/add', icon:FiPlus,        badge:'New' },
     { name:'Orders',      path:'/seller/orders',       icon:FiShoppingBag, badge:null },
     { name:'Profile',     path:'/seller/profile',      icon:FiUser,        badge:null },
+    { name:'Categories',  path:'/seller/categories/get',   icon:TbBlocks,        badge:null },
   ];
 
   const quickLinks = [
@@ -321,6 +323,11 @@ const SellerLayout = () => {
               className="sl-cta hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-white font-dm text-[13px] font-bold no-underline cursor-pointer"
             >
               <FiPlus size={14}/> Add Product
+            </Link>
+            <Link to="/seller/categories/add"
+              className="sl-cta hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-white font-dm text-[13px] font-bold no-underline cursor-pointer"
+            >
+              <TbBlocks size={14}/> Add Category
             </Link>
 
             {/* Logout */}

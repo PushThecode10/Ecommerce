@@ -11,6 +11,7 @@ import sellerRoutes from './routes/sellerRoutes.js';
 import buyerRoutes from './routes/buyerRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
+import categoriesRoutes from './routes/categoriesRoute.js';
 import connectDb from './config/db.js';
 import cookieParser from 'cookie-parser';
 
@@ -47,6 +48,7 @@ app.use('/api/seller', sellerRoutes);
 app.use('/api/buyer', buyerRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/categories', categoriesRoutes)
 
 // Health route
 app.get('/', (req, res) => {
